@@ -1,0 +1,334 @@
+Business Use Case
+
+Our trading and risk teams require "Daily Settlement Prices" from Exchanges/external vendors to perform daily valuations. Currently, these prices are available via API/SFTP as CSV files. We need an automated way to store this data, ensure its quality, and make it available for Excel users, Business Intelligence dashboards, and automated trading systems via API.
+
+Technical Requirements
+
+Data Ingestion
+
+· Source Location: Simulate an SFTP with S3 bucket where a CSV/Excel file is dropped daily. Prices are available on all business days.
+
+· Sample Data Structure: Will be shared.
+
+· Task: Develop a script or pipeline to detect the daily file and load the raw data into a table.
+
+· Audit Fields: Every record must include ingestion_timestamp and source_file_name.
+
+Data Transformation & Modeling
+
+· Standardize Date formats (YYYY-MM-DD).
+
+· Maintain Data Source Name
+
+· Handle null values
+
+· Create key to identify unique record
+
+· Create a final "Data Product" table (market_prices) optimized for reporting/API.
+
+· Add audit columns.
+
+· Ensure no duplicate prices exist for the same Instrument_ID on the same Price_Date.
+
+Downstream Consumption - API Layer
+
+· Technology: FAST API
+
+· Endpoint Requirements: /getprices
+
+o Parameters : Mandatory [Trade_Date, Source/Exchange_Name]
+· Format: The API must return data in a structured JSON format. All attributes to be returned.
+· Error Handling: Implement proper HTTP status codes (404 for not found, 400 for bad requests).
+
+Downstream Consumption - Visualization
+
+· Tool: Power BI
+
+· Dashboard Requirements:
+o Price Trend: A line chart showing price movements over time for selected instruments.
+o Daily Variance: A calculation showing the % change from the previous day.
+o Connectivity: Connect Power BI via API.
+
+    SSO session name: user-sso
+    SSO start URL: https://d-906563d9630.awsapps.com/start
+    SSO region: us-east-1
+    SSO registration scopes: sso:account:access 
+    sso_role_name : Developer
+
+Let me read your requirements document first!Got it. I've read your full requirements document. Now let me rebuild the entire plan with your **actual business context baked in** — same hard teacher style, same hidden concepts, but now everything is grounded in *your real use case*.
+
+---
+
+# 🏦 Your Business Reality First
+
+> Your **trading and risk teams** need **Daily Settlement Prices** from exchanges/vendors to perform **daily valuations**. These prices come via SFTP/API as CSV files. You need to store them, ensure quality, and serve them to **Excel users, Power BI dashboards, and automated trading systems via API.**
+
+This is not a tutorial project. This is a **real financial data pipeline**. Settlement prices are used for P&L calculations. A wrong price = a wrong valuation = a real business problem. Keep that weight in mind as you build every step.
+
+---
+
+## 🗂️ STEP 1 — Simulate SFTP with S3 (Daily File Drop)
+
+**What you need to do:** Create an S3 bucket that simulates where the exchange/vendor drops a daily `settlement_prices_YYYYMMDD.csv` file.
+
+**What to learn:**
+- What is object storage vs block storage? S3 is object storage — understand *why* that matters for file-drop pipelines.
+- S3 bucket naming rules — globally unique, lowercase, no underscores.
+- **Bucket regions** — your Python script and bucket should be in the same region to avoid latency and data egress costs.
+- **Bucket policies vs IAM policies** — two ways to control access. Know both.
+
+**Your real requirement adds:**
+- Files land **every business day** (not weekends, not holidays). Your pipeline needs to know what a "business day" is.
+- The file name will likely contain the date — e.g., `settlement_prices_20240115.csv`. This filename is **audit data** — you'll store it as `source_file_name` on every record.
+
+**Hidden concepts:**
+> 🔍 **S3 is not a file system.** `data/prices/file.csv` is just a key with `/` in it. No real folders. This matters when you try to detect "today's file."
+
+> 🔍 **S3 Versioning** — Enable it from day one. If a vendor drops a corrected file for the same date, you need to know the history. In financial data, overwrite history is dangerous.
+
+> 🔍 **S3 Event Notifications** — In production, the file landing in S3 *triggers* the pipeline automatically. You're not polling; you're reacting. Plant this seed now.
+
+> 🔍 **Business Day Calendars** — Your pipeline must skip weekends. Later, it needs to handle exchange holidays too. Look up the `pandas_market_calendars` library. This is a real concern for financial pipelines.
+
+**Your task:** Create the bucket with versioning enabled, block all public access, and manually upload a sample CSV file with today's date in the filename.
+
+---
+
+## 🐍 STEP 2 — Python Script to Detect and Read Daily File from S3
+
+**What you need to do:** Write a Python script that connects to AWS, detects today's file, reads it, and prepares it for loading.
+
+**What to learn:**
+- **boto3** — AWS SDK for Python. Your bridge to all AWS services.
+- **IAM User vs IAM Role** — For local dev, use IAM user with access keys. For production (EC2/Lambda), use IAM Roles. Never hardcode keys.
+- `aws configure` — sets up `~/.aws/credentials`. Understand what this file is and why it must never be committed to Git.
+- Reading an S3 object returns a **stream (bytes)**, not a file path. You'll pass that stream to `pandas.read_csv()`.
+
+**Your real requirement adds:**
+- You need to **detect** today's file — construct the expected filename from today's date and check if it exists in S3. If it doesn't exist, that's an alert, not a crash.
+- Capture the `source_file_name` the moment you read the file. Store it — this is your audit trail back to the raw source.
+- Capture `ingestion_timestamp` (the exact UTC datetime your script ran). These two fields go on **every single record**.
+
+**Hidden concepts:**
+> 🔍 **Least Privilege Principle** — Your IAM user should only have `s3:GetObject` and `s3:ListBucket` on that specific bucket. Not admin. Not `s3:*`. This is a security fundamental.
+
+> 🔍 **`io.BytesIO`** — You'll need this Python class to wrap the S3 stream so pandas can read it as if it were a file. Classic gotcha.
+
+> 🔍 **`.env` + `python-dotenv`** — Never hardcode credentials. Store in `.env`, add `.env` to `.gitignore`. Always.
+
+> 🔍 **UTC everywhere** — Store all timestamps in UTC. Never local time. Your trading system likely has users in multiple timezones. `datetime.utcnow()` or better, `datetime.now(timezone.utc)`.
+
+**Your task:** Create an IAM user with minimal S3 permissions, configure locally, write a script that prints the DataFrame shape + confirms `source_file_name` and `ingestion_timestamp` are captured.
+
+---
+
+## 🗄️ STEP 3 — Create Local Database (MySQL/Postgres)
+
+**What you need to do:** Spin up a local relational database and create your schema.
+
+**What to learn:**
+- **MySQL vs PostgreSQL** — Postgres is strongly preferred for financial data (NUMERIC precision, window functions, JSON support, better standards compliance). Make the call and commit.
+- **Docker for local DB** — Don't install Postgres on your machine directly. Run via Docker. This is how prod teams work.
+- `psql` CLI — learn to navigate without a GUI first.
+- **Schema design** — a schema is a namespace inside a database.
+
+**Your real requirement adds:**
+- You need **two tables** (not one):
+  - A **raw/staging table** — exactly what came in from the file, with audit fields, no transformation. Append-only.
+  - A **final `market_prices` table** — transformed, deduplicated, optimized for reporting and API. This is your "Data Product."
+- This two-layer approach is called a **Raw → Curated** pattern. It's standard in financial data engineering.
+
+**Hidden concepts:**
+> 🔍 **Docker Compose** — Use a `docker-compose.yml` to define your DB container. One command spins up the whole thing. Production mindset for local dev.
+
+> 🔍 **Connection pooling** — Databases have a max connection limit. Never open a new connection per request. Use SQLAlchemy's connection pool. Understand this now.
+
+> 🔍 **Why two tables?** — The raw table is your safety net. If your transformation logic has a bug, you can re-run the transformation without re-fetching from S3. In financial systems, this is non-negotiable. The raw data is the source of truth.
+
+**Your task:** Spin up Postgres in Docker, create a `settlement_db` database, create two schemas: `raw` and `curated`.
+
+---
+
+## 🗺️ STEP 4 — Domain Model: Column Mapping (Excel/CSV → Table)
+
+**What you need to do:** Study your source file structure and design both tables from it.
+
+**What to learn:**
+- **Data types for financial data** — `NUMERIC(18,6)` for prices. **NEVER `FLOAT`** — floating point silently corrupts settlement prices.
+- `DATE` vs `TIMESTAMP` — Price_Date is a `DATE`. Ingestion_timestamp is a `TIMESTAMPTZ` (timestamp with time zone).
+- **Natural key vs surrogate key** — For market_prices, your natural unique key is `(Instrument_ID, Price_Date, Source_Name)`. That combination should be unique. No duplicates allowed.
+- **DDL vs DML** — `CREATE TABLE` is DDL. `INSERT/SELECT` is DML. Know this terminology cold.
+
+**Your real requirement adds:**
+- **Standardize date formats to `YYYY-MM-DD`** — Vendors send dates in every possible format (`15-Jan-2024`, `1/15/24`, `20240115`). You must normalize all of them.
+- **Maintain `Data_Source_Name`** — which exchange or vendor this price came from. This is a filter parameter in your API later.
+- **Handle null values** — decide per column: is a null price a data quality issue (reject the record) or acceptable (store as null)?
+- **Unique constraint** — `(Instrument_ID, Price_Date, Source_Name)` must be UNIQUE in `market_prices`. Enforce it at the database level, not just in application code.
+
+**Hidden concepts:**
+> 🔍 **NEVER use `FLOAT` for money.** `0.1 + 0.2` in floating point is `0.30000000000000004`. For settlement prices used in P&L calculations, this is catastrophic. Use `NUMERIC(18,6)`.
+
+> 🔍 **Alembic for migrations** — In production, you don't manually run `ALTER TABLE`. You write migration scripts with Alembic. Even for local dev, build this habit now.
+
+> 🔍 **`created_at` and `updated_at` on every table** — Every production table has these. Add them from day one.
+
+> 🔍 **Data Quality as a first-class citizen** — In financial systems, a missing or wrong settlement price isn't a minor bug. It's a business incident. Your pipeline must log, alert, and reject bad data — not silently swallow it.
+
+**Your task:** Write all DDL by hand for both `raw.settlement_prices_raw` and `curated.market_prices`. Justify every column type you choose.
+
+---
+
+## 📥 STEP 5 — Run Pipeline: Read File → Transform → Insert (Pandas + SQLAlchemy)
+
+**What you need to do:** Connect the pieces — read from S3, clean and transform data, insert into both tables.
+
+**What to learn:**
+- **SQLAlchemy** — Python's DB connection layer. `create_engine()` connects to Postgres.
+- **`DataFrame.to_sql()`** — pandas bulk insert. Know parameters: `if_exists`, `index`, `chunksize`, `method`.
+- **Data cleaning** — parse dates, strip whitespace, handle nulls, coerce types. Real CSV files from vendors are dirty.
+- **`chunksize`** — don't insert 100k rows in one shot. Chunk at 1000 rows.
+
+**Your real requirement adds:**
+- **Two-stage insert:** First, insert raw data into `raw.settlement_prices_raw` (with `source_file_name` + `ingestion_timestamp`). Then, run transformation logic and insert into `curated.market_prices`.
+- **Deduplication logic:** Before inserting into `market_prices`, check if a record for `(Instrument_ID, Price_Date, Source_Name)` already exists. This is your **upsert** — `INSERT ... ON CONFLICT DO UPDATE` or `DO NOTHING`.
+- **Date standardization** in pandas: `pd.to_datetime(df['Price_Date'], dayfirst=False).dt.strftime('%Y-%m-%d')`.
+- **Null handling strategy** — log records with null prices to a separate `data_quality_errors` table. Don't silently drop them.
+
+**Hidden concepts:**
+> 🔍 **Idempotency** — Run the pipeline twice with the same file. The result should be identical. No duplicates, no errors. This is the #1 production pipeline requirement.
+
+> 🔍 **Upsert vs Insert** — `INSERT ... ON CONFLICT (instrument_id, price_date, source_name) DO UPDATE SET settlement_price = EXCLUDED.settlement_price` — this handles the case where the vendor sends a corrected file for the same date.
+
+> 🔍 **Transaction management** — The raw insert and curated insert should be in the same database transaction. If the curated insert fails, the raw insert should rollback too. Or design it the other way: commit raw first (it's your audit trail), then curated separately.
+
+> 🔍 **`psycopg2` extras** — `execute_values()` is 10x faster than `to_sql()` for bulk inserts. Know it exists even if you start with `to_sql()`.
+
+**Your task:** Run the full pipeline end-to-end. Verify raw table has all records with audit fields. Verify market_prices has no duplicates. Run it twice — verify idempotency.
+
+---
+
+## 🔍 STEP 6 — Run SQL Queries (Slice and Dice)
+
+**What you need to do:** Query `market_prices` for the business use cases your trading team actually needs.
+
+**What to learn:**
+- `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY` — master these.
+- **Window functions** — `LAG()` and `LEAD()` are critical for your use case. Daily variance calculation is `(today_price - yesterday_price) / yesterday_price * 100` — that's a `LAG()`.
+- **Indexes** — a table with 2 years of daily prices for 1000 instruments is 500k rows. Without an index on `(instrument_id, price_date)`, every query is a full table scan.
+- **`EXPLAIN ANALYZE`** — Postgres tool to show the query execution plan. Learn to read it.
+
+**Your real requirement adds:**
+- **Price Trend query** — `SELECT price_date, settlement_price FROM market_prices WHERE instrument_id = ? ORDER BY price_date` — this feeds your Power BI line chart.
+- **Daily Variance query** — `LAG(settlement_price) OVER (PARTITION BY instrument_id ORDER BY price_date)` — this is the `%` change calculation.
+- **Filter by Source/Exchange name** — `WHERE source_name = ?` — this is a mandatory API parameter, so you need this to be fast. Index on `source_name`.
+
+**Hidden concepts:**
+> 🔍 **Composite index** — Create index on `(instrument_id, price_date)` together, not separately. The order matters — put the column you filter on most first.
+
+> 🔍 **`EXPLAIN ANALYZE` vs `EXPLAIN`** — `EXPLAIN` shows the plan. `EXPLAIN ANALYZE` actually runs the query and shows real timings. Always use `ANALYZE` when optimizing.
+
+> 🔍 **CTEs for readability** — Your daily variance query with `LAG()` gets complex. Wrap it in a CTE. Production SQL is readable SQL.
+
+> 🔍 **`SELECT *` is an antipattern** — In financial APIs, you control exactly which fields are returned. `SELECT *` breaks when schema changes and leaks internal fields.
+
+**Your task:** Write these queries: (1) Price trend for one instrument over a date range, (2) Daily variance % for all instruments on a given date, (3) Latest price per instrument per source. Use indexes and verify with `EXPLAIN ANALYZE`.
+
+---
+
+## ⚡ STEP 7 — Create FastAPI Endpoints
+
+**What you need to do:** Build a production-structured REST API that serves your settlement price data.
+
+**What to learn:**
+- **FastAPI architecture:** `main.py` → `routers/` (controllers) → `services/` (business logic) → `models/` (Pydantic schemas) → `db/` (session + ORM models).
+- **Pydantic models** — request/response validation and serialization. FastAPI uses these for auto-docs.
+- **Dependency Injection** — `Depends()` in FastAPI for DB sessions, auth, etc.
+- **SQLAlchemy ORM models vs Pydantic models** — two different model types. One talks to the DB, one talks to the API consumer.
+
+**Your real requirement adds:**
+- **`GET /getprices`** — mandatory parameters: `Trade_Date` (must be a valid date), `Source_Exchange_Name` (must not be empty).
+- **Return all attributes** in structured JSON format.
+- **`404`** — if no prices exist for that date + source combination.
+- **`400`** — if mandatory parameters are missing or invalid (wrong date format, empty source name).
+- **`500`** — for unexpected server errors (never let the raw Python exception propagate to the API consumer).
+
+**Hidden concepts:**
+> 🔍 **Never expose your DB/ORM model as the API response.** Use a Pydantic `response_model`. This decouples your DB schema from your API contract. Changing a DB column doesn't break API consumers.
+
+> 🔍 **Query parameter validation with Pydantic** — `Trade_Date: date = Query(...)` — FastAPI automatically validates the date format and returns a `422` if it's malformed. Learn the difference between `400` and `422`.
+
+> 🔍 **Session management** — Each request gets its own DB session via `get_db()` dependency. The session closes when the request ends. This is the FastAPI database dependency pattern. Google it.
+
+> 🔍 **Financial API design principle** — Your API consumers (trading systems) are often automated. They depend on consistent response structure. A schema change that breaks a consumer could halt automated trading. API contracts in finance are serious.
+
+**Your task:** Build `GET /getprices` with full validation, proper response model, and all three error cases handled correctly. Structure the project in proper layers before writing a single line of business logic.
+
+---
+
+## 🚀 STEP 8 — Local Deployment and API Testing
+
+**What you need to do:** Run your FastAPI app locally and fully test all scenarios.
+
+**What to learn:**
+- **Uvicorn** — ASGI server for FastAPI. `uvicorn main:app --reload` for dev.
+- **Swagger UI at `/docs`** — FastAPI auto-generates this. Test every endpoint here first.
+- **`BaseSettings` in Pydantic** — Load and validate all env vars at startup. If `DATABASE_URL` is missing, crash loudly at boot — not silently at runtime.
+- **`pytest` + `httpx`** — write tests for your API. At minimum: happy path, 404 case, 400 case.
+
+**Your real requirement adds:**
+- Test the full end-to-end flow: file in S3 → pipeline runs → data in DB → API returns data → matches source file.
+- Test the `404` scenario: call `/getprices` for a date with no data.
+- Test the `400` scenario: call without `Trade_Date`, call with invalid date format like `15-Jan-2024`.
+- Test the **duplicate prevention**: run the pipeline twice, confirm the API returns the same record count both times.
+
+**Hidden concepts:**
+> 🔍 **`--reload` is dev-only.** Production uses multiple workers: `uvicorn main:app --workers 4`. Understand the difference between sync and async workers.
+
+> 🔍 **CORS** — When Power BI or any frontend calls your API, you'll need `CORSMiddleware`. Add it now before you forget.
+
+> 🔍 **Structured logging** — Use Python's `logging` module, not `print`. Every request should log: the endpoint called, the parameters, the number of records returned, and the response time. This is how you debug production issues.
+
+> 🔍 **Health check endpoint** — Add `GET /health` that returns `{"status": "ok"}` and checks DB connectivity. Monitoring systems ping this. It's table stakes.
+
+**Your task:** Run the full flow. Write at least 5 `pytest` test cases. Add structured logging and a `/health` endpoint.
+
+---
+
+## 📊 BONUS — Power BI Dashboard (After API is Live)
+
+**This is your final consumer layer. It comes after Steps 1-8 are solid.**
+
+**What to learn:**
+- **Power BI Web connector** — Connect Power BI to your FastAPI endpoint using the Web connector. It calls your `/getprices` endpoint and loads the JSON response.
+- **M language (Power Query)** — Power BI's data transformation language. You'll use it to parse the JSON response and shape it into a table.
+- **DAX for Daily Variance** — `% Change = DIVIDE([Today Price] - [Yesterday Price], [Yesterday Price])` — this is the DAX formula for your daily variance metric.
+
+**Your real requirement:**
+- **Price Trend** — Line chart, X axis = `Price_Date`, Y axis = `Settlement_Price`, filtered by `Instrument_ID`. Slicers for instrument and date range.
+- **Daily Variance** — Calculated column using `LAG` logic or DAX `EARLIER()`. Show as a % with conditional formatting (red if negative, green if positive).
+- **Connect via API** — Not direct DB connection. Power BI calls your FastAPI endpoint. This forces your API to be robust.
+
+**Hidden concepts:**
+> 🔍 **Direct DB vs API connection in Power BI** — Never connect Power BI directly to your production DB. The API layer is your control point. It handles auth, rate limiting, and data shaping. Direct DB connections from BI tools bypass all of that.
+
+> 🔍 **Scheduled refresh** — In production, Power BI refreshes the dataset on a schedule. Your API must be fast enough to serve this without timeout. Indexes matter here too.
+
+---
+
+## 🧱 Your Production Standards Checklist
+
+| Concern | What to implement |
+|---|---|
+| **Security** | IAM least privilege, no hardcoded secrets, `.env` + `.gitignore` |
+| **Data Quality** | Null handling, type validation, rejected record logging |
+| **Reliability** | Idempotent pipeline, upsert logic, transaction management |
+| **Auditability** | `ingestion_timestamp`, `source_file_name` on every raw record |
+| **Observability** | Structured logging (not `print`), `/health` endpoint |
+| **Performance** | Composite indexes, chunked inserts, connection pooling |
+| **Maintainability** | Project layers, Alembic migrations, README |
+| **Testability** | pytest with happy path + all error cases |
+| **API Contract** | Pydantic response models, proper HTTP status codes |
+
+---
+
+Start with **Step 1**. Create the S3 bucket. Name it properly. Enable versioning. Upload a sample CSV with today's date in the filename. Then come back. 💪

@@ -1,0 +1,274 @@
+# =============================================================================
+# DOCKER COMPOSE FOR POSTGRESQL LEARNING ENVIRONMENT
+# =============================================================================
+# Docker Compose is a tool for defining and running multi-container applications.
+# This file uses YAML format to configure your application's services.
+# 
+# WHAT YOU'LL LEARN:
+# - How to run PostgreSQL in a container
+# - How to configure database users, passwords, and databases
+# - How to persist data using volumes
+# - How to expose PostgreSQL to your host machine
+# - How to configure PostgreSQL for development/learning
+# =============================================================================
+
+version: '3.8'
+# Version specifies the Docker Compose file format version.
+# Version 3.8 is widely supported and includes modern features.
+
+# -----------------------------------------------------------------------------
+# SERVICES SECTION
+# -----------------------------------------------------------------------------
+# Services are the containers that will run as part of your application.
+# Each service can be based on an image or built from a Dockerfile.
+services:
+
+  # ---------------------------------------------------------------------------
+  # POSTGRESQL DATABASE SERVICE
+  # ---------------------------------------------------------------------------
+  # This is your main PostgreSQL database container.
+  # Name it 'postgres' (or 'db') - you'll use this name to reference it.
+  postgres:
+    
+    # -------------------------------------------------------------------------
+    # IMAGE: Which PostgreSQL version to use
+    # -------------------------------------------------------------------------
+    # The 'image' tells Docker which pre-built container to download and run.
+    # Format: postgres:<version>
+    # - postgres:16 = Latest PostgreSQL 16.x (recommended for learning latest features)
+    # - postgres:15 = PostgreSQL 15.x
+    # - postgres:13 = Older but stable version
+    # - postgres:latest = Always gets the newest version (use with caution)
+    image: postgres:16
+    
+    # -------------------------------------------------------------------------
+    # CONTAINER NAME: Custom name for this container
+    # -------------------------------------------------------------------------
+    # Without this, Docker generates a random name like "energy-etl_postgres_1"
+    # With this, you can easily reference it: docker exec -it postgres_learning bash
+    container_name: postgres_learning
+    
+    # -------------------------------------------------------------------------
+    # RESTART POLICY: When should this container restart?
+    # -------------------------------------------------------------------------
+    # Options:
+    # - "no": Never restart automatically (default)
+    # - always: Always restart if container stops
+    # - unless-stopped: Restart unless you explicitly stopped it
+    # - on-failure: Only restart if container exits with error
+    restart: unless-stopped
+    
+    # -------------------------------------------------------------------------
+    # ENVIRONMENT VARIABLES: PostgreSQL Configuration
+    # -------------------------------------------------------------------------
+    # These variables configure PostgreSQL when the container first starts.
+    # They only work on FIRST RUN - if you change them later, you need to
+    # delete the volume (data) and start fresh.
+    environment:
+      
+      # POSTGRES_USER: The superuser account name
+      # This creates an admin user with full privileges on the database.
+      # Default is 'postgres' if not specified.
+      # For learning: Use a custom name to understand user management.
+      POSTGRES_USER: learner
+      
+      # POSTGRES_PASSWORD: The password for the superuser
+      # SECURITY NOTE: In production, NEVER hardcode passwords here!
+      # Use Docker secrets or environment files (.env)
+      # For learning: This is fine, but remember it's visible in this file.
+      POSTGRES_PASSWORD: learning123
+      
+      # POSTGRES_DB: The default database to create
+      # PostgreSQL always needs at least one database.
+      # If not specified, it creates a database named after POSTGRES_USER.
+      # This database is created automatically on first startup.
+      POSTGRES_DB: energy_learning
+      
+      # POSTGRES_INITDB_ARGS: Arguments passed to initdb (initialization)
+      # These are advanced options for database cluster initialization.
+      # --encoding=UTF8: Use UTF-8 character encoding (supports all languages)
+      # --locale=en_US.utf8: Set locale for sorting and formatting
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.utf8"
+      
+      # TZ: Timezone for the container
+      # Affects timestamp storage and display.
+      # Common values: UTC, America/New_York, Europe/London, Asia/Tokyo
+      TZ: UTC
+    
+    # -------------------------------------------------------------------------
+    # PORTS: Expose PostgreSQL to your host machine
+    # -------------------------------------------------------------------------
+    # Format: "HOST_PORT:CONTAINER_PORT"
+    # 5432 is PostgreSQL's default port.
+    # 
+    # What this means:
+    # - Inside container: PostgreSQL listens on port 5432
+    # - On your machine: You connect to localhost:5432
+    # 
+    # You can connect from:
+    # - pgAdmin (GUI tool)
+    # - psql (command-line client)
+    # - Python scripts (using psycopg2)
+    # - Any database client on your machine
+    # 
+    # If port 5432 is already in use, change to "5433:5432" or another port.
+    ports:
+      - "5432:5432"
+    
+    # -------------------------------------------------------------------------
+    # VOLUMES: Persist your data between container restarts
+    # -------------------------------------------------------------------------
+    # Without volumes, all data is LOST when you stop the container!
+    # 
+    # Format: "volume_name:container_path"
+    # 
+    # What's happening:
+    # 1. Docker creates a named volume called 'postgres_data'
+    # 2. This volume is mounted to /var/lib/postgresql/data in the container
+    # 3. This is where PostgreSQL stores all database files
+    # 4. The volume persists even if you delete the container
+    # 
+    # LEARNING TIP:
+    # - To start fresh: docker-compose down -v (deletes volumes)
+    # - To keep data: docker-compose down (keeps volumes)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      
+      # OPTIONAL: You can add an init script volume
+      # Uncomment these lines to automatically run SQL scripts on first startup:
+      # - ./init-scripts:/docker-entrypoint-initdb.d
+      # Any .sql or .sh files in ./init-scripts will run automatically!
+    
+    # -------------------------------------------------------------------------
+    # HEALTHCHECK: Monitor if PostgreSQL is running correctly
+    # -------------------------------------------------------------------------
+    # Docker will periodically check if the database is healthy.
+    # Useful for debugging and orchestration.
+    healthcheck:
+      # The command to check if PostgreSQL is ready
+      # pg_isready: PostgreSQL's built-in health check tool
+      # -U learner: Check as the 'learner' user
+      test: ["CMD-SHELL", "pg_isready -U learner -d energy_learning"]
+      
+      # How often to run the check
+      interval: 10s
+      
+      # How long to wait for the check to complete
+      timeout: 5s
+      
+      # How many times to retry before marking as unhealthy
+      retries: 5
+      
+      # How long to wait before starting health checks (DB needs time to start)
+      start_period: 10s
+    
+    # -------------------------------------------------------------------------
+    # NETWORKS: (Optional) Custom network for container communication
+    # -------------------------------------------------------------------------
+    # If you add more services (like a Python app), they can communicate
+    # using the service name as hostname (e.g., postgres:5432)
+    # networks:
+    #   - learning_network
+
+# =============================================================================
+# VOLUMES SECTION
+# =============================================================================
+# Named volumes must be declared here to be used by services.
+# Docker manages these volumes and stores them in Docker's data directory.
+# 
+# LEARNING COMMANDS:
+# - View volumes: docker volume ls
+# - Inspect volume: docker volume inspect postgres_data
+# - Remove volume: docker volume rm postgres_data (when container is stopped)
+# - Remove all unused: docker volume prune
+volumes:
+  postgres_data:
+    # driver: local means data is stored on your machine
+    driver: local
+    
+    # You can add labels for organization:
+    labels:
+      description: "PostgreSQL data for energy ETL learning project"
+
+# =============================================================================
+# NETWORKS SECTION (Optional)
+# =============================================================================
+# Custom networks allow containers to communicate with each other.
+# Uncomment if you plan to add more services (web apps, APIs, etc.)
+# networks:
+#   learning_network:
+#     driver: bridge
+
+# =============================================================================
+# HOW TO USE THIS FILE
+# =============================================================================
+#
+# 1. START THE DATABASE:
+#    docker-compose up -d
+#    (-d runs in detached mode, in the background)
+#
+# 2. VIEW LOGS (see what PostgreSQL is doing):
+#    docker-compose logs -f postgres
+#    (-f follows logs in real-time, Ctrl+C to exit)
+#
+# 3. CONNECT TO POSTGRESQL SHELL:
+#    docker-compose exec postgres psql -U learner -d energy_learning
+#    Now you can run SQL commands directly!
+#
+# 4. STOP THE DATABASE (keeps data):
+#    docker-compose stop
+#
+# 5. STOP AND REMOVE CONTAINER (keeps data):
+#    docker-compose down
+#
+# 6. STOP AND REMOVE EVERYTHING (deletes data!):
+#    docker-compose down -v
+#
+# 7. CHECK CONTAINER STATUS:
+#    docker-compose ps
+#
+# 8. VIEW RESOURCE USAGE:
+#    docker stats postgres_learning
+#
+# =============================================================================
+# LEARNING EXERCISES
+# =============================================================================
+#
+# EXERCISE 1: Connect and Explore
+# - Start the container: docker-compose up -d
+# - Connect: docker-compose exec postgres psql -U learner -d energy_learning
+# - Try commands:
+#   \l              (list all databases)
+#   \dt             (list tables in current database)
+#   \du             (list users/roles)
+#   \q              (quit)
+#
+# EXERCISE 2: Create Your First Table
+# CREATE TABLE energy_readings (
+#     id SERIAL PRIMARY KEY,
+#     timestamp TIMESTAMP DEFAULT NOW(),
+#     meter_id VARCHAR(50),
+#     kwh_used DECIMAL(10,2)
+# );
+#
+# EXERCISE 3: Insert and Query Data
+# INSERT INTO energy_readings (meter_id, kwh_used) 
+# VALUES ('METER_001', 245.50);
+# 
+# SELECT * FROM energy_readings;
+#
+# EXERCISE 4: Backup and Restore
+# - Backup: docker-compose exec -T postgres pg_dump -U learner energy_learning > backup.sql
+# - Restore: docker-compose exec -T postgres psql -U learner energy_learning < backup.sql
+#
+# EXERCISE 5: Connect from Python (install psycopg2 first)
+# import psycopg2
+# conn = psycopg2.connect(
+#     host="localhost",
+#     port=5432,
+#     database="energy_learning",
+#     user="learner",
+#     password="learning123"
+# )
+#
+# =============================================================================
