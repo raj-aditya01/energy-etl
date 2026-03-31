@@ -119,31 +119,635 @@ Distillate fuel oil used for heating and diesel engines.
 
 ---
 
-### 4. Power/Electricity
+### 4. Power/Electricity Markets
 
 **What It Is:**  
-Electricity traded for delivery at specific locations (nodes) and times.
+Electricity traded for delivery at specific locations (nodes) and times. Unlike other commodities, electricity cannot be economically stored at scale, requiring real-time balancing of supply and demand.
 
-**Main Hubs:**
+#### 🌍 Global Power Markets Overview
 
-| Region | Hub | Description |
-|--------|-----|-------------|
-| **PJM** | Western Hub | Mid-Atlantic/Midwest US |
-| **ERCOT** | North Hub | Texas |
-| **CAISO** | SP15 | Southern California |
-| **NYISO** | Zone A | New York City |
+**Unique Characteristics:**
+- **No Storage** - Must balance supply/demand every second
+- **Instantaneous Delivery** - Speed of light transmission
+- **Locational Pricing** - Different prices at different grid locations
+- **Time Dependency** - Hour-by-hour, even minute-by-minute pricing
+- **Extreme Volatility** - Prices can spike 100x to 1000x during shortages
+- **Physical Constraints** - Transmission capacity limits
 
-**Key Facts:**
-- **Cannot be stored** (must balance supply/demand in real-time)
-- **Extreme volatility** (can spike 100x during shortages)
-- **Locational pricing** (transmission constraints create price differences)
-- **Time-based products:** Peak (6 AM-10 PM weekdays), Off-Peak
+---
 
-**Why Prices Move:**
-- Demand (weather, time of day, day of week)
-- Generation availability (outages, renewable output)
-- Fuel prices (natural gas, coal)
-- Transmission constraints
+## ⚡ ICE (Intercontinental Exchange) European Power Markets
+
+### Overview
+
+**ICE** is the **leading exchange** for European wholesale electricity trading, covering the largest and most liquid power markets in Europe.
+
+**Key European Power Markets Traded on ICE:**
+
+| Country/Region | Market | Hub/Zone | Currency | Settlement |
+|----------------|--------|----------|----------|------------|
+| **Germany** | German Power | EPEX/EEX | EUR/MWh | Day-Ahead, Futures |
+| **UK** | UK Power | N2EX | GBP/MWh | Day-Ahead, Futures |
+| **France** | French Power | EPEX | EUR/MWh | Day-Ahead, Futures |
+| **Netherlands** | Dutch Power | APX | EUR/MWh | Day-Ahead, Futures |
+| **Belgium** | Belgian Power | Belpex | EUR/MWh | Day-Ahead, Futures |
+| **Nordic** | Nordic Power (Nord Pool) | System Price | EUR/MWh | Day-Ahead, Futures |
+| **Italy** | Italian Power | GME | EUR/MWh | Day-Ahead, Futures |
+| **Spain** | Spanish Power | OMIE | EUR/MWh | Day-Ahead, Futures |
+
+---
+
+### European Power Market Structure
+
+#### 1. Day-Ahead Market (Spot Market)
+
+**What It Is:**  
+Auction-based market where power for **next day delivery** is traded **hour-by-hour**.
+
+**How It Works:**
+
+```
+Timeline:
+Day D:  12:00 PM → Gate Closure (auction closes)
+        12:30 PM → Market Clearing (prices published)
+        3:00 PM  → Final schedules published
+Day D+1: 00:00 AM → Physical delivery begins
+```
+
+**Example - German Day-Ahead (EPEX SPOT):**
+
+| Hour | Demand (GW) | Supply (GW) | Clearing Price (EUR/MWh) |
+|------|-------------|-------------|--------------------------|
+| 00:00-01:00 | 45 | 52 | €35.50 (low demand) |
+| 12:00-13:00 | 68 | 70 | €65.80 (peak demand) |
+| 18:00-19:00 | 72 | 71 | €85.40 (evening peak) |
+| 02:00-03:00 | 42 | 55 | €25.20 (night low) |
+
+**Key Concepts:**
+
+- **System Marginal Price (SMP)** - Price of most expensive generator needed to meet demand
+- **Price Coupling of Regions (PCR)** - Integrated European day-ahead market
+- **Market Coupling** - Automated flow of power between countries based on price differences
+
+**Market Coupling Example:**
+
+```
+Before Coupling:
+Germany: €60/MWh (high wind, excess supply)
+France:  €80/MWh (low nuclear, tight supply)
+
+After Coupling via Interconnector:
+Germany exports to France
+Germany: €68/MWh (price rises due to export)
+France:  €72/MWh (price falls due to import)
+Convergence toward equilibrium!
+```
+
+---
+
+#### 2. Intraday Market
+
+**What It Is:**  
+**Continuous trading** market for power delivery on **same day**, allowing adjustments after day-ahead auction.
+
+**Trading Timeline:**
+
+```
+Day D:   15:00 → Intraday market opens (for next day)
+Day D+1: 00:00 → Physical delivery starts
+         05:00 → Hour 6-7 delivery (trading continues until 5 minutes before)
+         23:55 → Last trades for final hour (23:00-24:00)
+```
+
+**Why Intraday Matters:**
+
+1. **Renewable Forecasting** - Adjust for actual wind/solar vs. forecast
+2. **Plant Outages** - Cover unexpected generation failures
+3. **Demand Variations** - Respond to temperature changes
+4. **Balancing** - Fine-tune positions before real-time
+
+**Example - Wind Forecast Error:**
+
+```
+Day-Ahead Forecast: 10 GW wind generation
+Actual (Intraday):  6 GW wind generation (low wind speeds)
+
+Action: Power company buys 4 GW in intraday market
+Price Impact: Intraday price spikes from €50 to €75/MWh
+```
+
+---
+
+#### 3. Futures Market (Forward Market)
+
+**What It Is:**  
+Contracts for **future power delivery** (weeks, months, quarters, years ahead).
+
+**ICE European Power Futures:**
+
+| Product | Delivery Period | Use Case |
+|---------|-----------------|----------|
+| **Baseload** | 24 hours/day, entire period | Constant load hedging |
+| **Peak Load** | 8 AM - 8 PM weekdays only | Industrial/commercial |
+| **Off-Peak** | Nights + weekends | Low-value periods |
+| **Monthly** | Entire calendar month | Short-term hedging |
+| **Quarterly** | Q1, Q2, Q3, Q4 | Seasonal hedging |
+| **Annual** | Calendar year | Long-term contracts |
+
+**Example - German Power Annual Futures:**
+
+| Contract | Delivery | Trading Price (EUR/MWh) | Volume |
+|----------|----------|-------------------------|--------|
+| Cal-24 | Jan-Dec 2024 | €95.50 | 125,000 MWh |
+| Cal-25 | Jan-Dec 2025 | €88.20 | 98,000 MWh |
+| Cal-26 | Jan-Dec 2026 | €82.50 | 45,000 MWh |
+
+**Baseload vs. Peak Example:**
+
+```
+German Power Cal-24:
+Baseload: €95.50/MWh (24h/day × 365 days = 8,760 hours)
+Peak:     €115.30/MWh (12h/day × 261 weekdays = 3,132 hours)
+
+Peak Premium: €19.80/MWh (20.7% higher)
+Reason: Peak hours have higher demand, lower renewable output
+```
+
+---
+
+### European Power Market Participants
+
+#### 1. Generators (Power Producers)
+
+**Types:**
+- **Utilities** - E.ON, RWE, EDF, Vattenfall, Enel
+- **Renewable Operators** - Wind farms, solar parks
+- **Gas-Fired Plants** - Flexible peaking plants
+- **Nuclear Operators** - Baseload generation
+
+**Hedging Strategy:**
+```
+Wind Farm:
+- Produces 200 GWh/year (uncertain timing)
+- Sells 150 GWh as baseload futures (secure revenue)
+- Sells 50 GWh in day-ahead/intraday (optimize actual production)
+- Hedge ratio: 75% to lock in revenue
+```
+
+#### 2. Suppliers (Retailers)
+
+**Who:** Companies selling electricity to end-users (homes, businesses)
+
+**Example:** German Retail Supplier
+
+```
+Customer Load: 500 GWh/year
+Procurement Strategy:
+- 200 GWh: Long-term annual futures (price certainty)
+- 200 GWh: Quarterly futures (seasonal optimization)
+- 80 GWh: Monthly futures (flexibility)
+- 20 GWh: Day-ahead market (fine-tuning)
+```
+
+#### 3. Traders & Speculators
+
+**Strategies:**
+- **Spread Trading** - Exploit price differences between countries
+- **Calendar Spreads** - Summer vs. Winter pricing
+- **Volatility Trading** - Options on power futures
+- **Weather Trading** - Profit from temperature forecast changes
+
+#### 4. Industrial Consumers
+
+**Large Users:** Aluminum smelters, steel mills, data centers, chemical plants
+
+**Hedging Example:**
+```
+Aluminum Smelter:
+Annual Consumption: 1,200 GWh
+Electricity Cost: 40% of production cost
+
+Hedge: Buy 1,000 GWh Cal-24 futures at €90/MWh
+Result: Lock in predictable costs for budgeting
+```
+
+---
+
+### Power Market Pricing Dynamics
+
+#### Merit Order Dispatch
+
+**Concept:** Generators dispatched in order of **marginal cost** (cheapest first).
+
+**Typical European Merit Order:**
+
+| Technology | Marginal Cost | Capacity Factor | Dispatch Order |
+|------------|---------------|-----------------|----------------|
+| Solar | €0/MWh | 11% (daytime only) | 1st (when sunny) |
+| Wind | €0/MWh | 25% (variable) | 1st (when windy) |
+| Nuclear | €10/MWh | 85% (baseload) | 2nd |
+| Hydro (run-of-river) | €5/MWh | 40% | 2nd |
+| Lignite (coal) | €25/MWh | 60% | 3rd |
+| Hard Coal | €40/MWh | 40% | 4th |
+| Gas CCGT (efficient) | €55/MWh | 50% | 5th |
+| Gas Open Cycle | €90/MWh | 10% (peaking) | 6th |
+| Oil | €120/MWh | 5% (emergency) | 7th |
+
+**Price Setting Example:**
+
+```
+Hour 14:00 (High Demand - 70 GW):
+Solar:     15 GW (€0)
+Wind:      12 GW (€0)
+Nuclear:   10 GW (€10)
+Hydro:     5 GW (€5)
+Coal:      18 GW (€25-€40)
+Gas CCGT:  10 GW (€55) ← Marginal plant sets price
+
+Market Clearing Price: €55/MWh
+(All generators receive €55, even if their cost is €0!)
+
+Hour 03:00 (Low Demand - 45 GW):
+Wind:      12 GW (€0) ← Marginal plant
+Nuclear:   10 GW (€10)
+Hydro:     8 GW (€5)
+Coal:      15 GW (€25)
+
+Market Clearing Price: €25/MWh
+(Lower demand = cheaper marginal plant)
+```
+
+---
+
+### Renewable Integration Challenges
+
+#### 1. Negative Prices
+
+**When It Happens:**  
+High renewable output + low demand = oversupply
+
+**Example - German Sunday Morning:**
+
+```
+Time: 11:00 AM, sunny Sunday in May
+Solar Output: 35 GW (record high)
+Wind Output: 20 GW (strong winds)
+Total Renewable: 55 GW
+Demand: Only 40 GW (low Sunday demand)
+
+Oversupply: 15 GW
+Nuclear/Coal: Cannot shut down quickly
+Solution: Pay consumers to take power!
+
+Price: -€50/MWh (NEGATIVE!)
+```
+
+**Real Example - Germany April 2020:**
+- Negative prices for 128 hours during month
+- Lowest: -€83.94/MWh
+- Reason: COVID lockdowns (low demand) + high wind/solar
+
+**Who Benefits:**
+- Large industrial consumers (paid to consume!)
+- Battery storage operators (charge batteries, get paid)
+- Pump storage (pump water uphill, store energy)
+
+#### 2. Curtailment
+
+**What It Is:**  
+Paying renewable generators to **shut down** when grid can't handle output.
+
+**Example:**
+```
+Wind Farm Curtailment Order:
+"Reduce output from 100 MW to 50 MW for 3 hours"
+
+Compensation:
+Lost Generation: 150 MWh
+Market Price: €60/MWh
+Payment: €9,000 (to compensate for lost revenue)
+```
+
+#### 3. Capacity Markets
+
+**Problem:** Renewables don't provide reliability (no sun/wind at night/calm days)
+
+**Solution:** Pay conventional plants to **stay available** even if not running.
+
+**UK Capacity Market Example:**
+
+```
+Gas Plant (500 MW):
+Capacity Payment: £45,000/MW/year
+Total Revenue: £22.5 million/year (just for being available!)
+
+Plus: Energy payments when actually running
+Result: Plant stays open for backup, ensuring security of supply
+```
+
+---
+
+### Cross-Border Trading (Market Coupling)
+
+#### Interconnector Capacity
+
+**Key European Interconnectors:**
+
+| Connection | Capacity (MW) | Annual Flow | Main Flow Direction |
+|------------|---------------|-------------|---------------------|
+| France-UK | 2,000 | 15 TWh | France → UK (nuclear) |
+| Germany-France | 3,000 | 20 TWh | Germany → France (renewables) |
+| Norway-Germany | 1,400 | 10 TWh | Norway → Germany (hydro) |
+| Belgium-UK | 1,000 | 7 TWh | Bidirectional |
+| Spain-France | 2,800 | 8 TWh | Spain → France (wind/solar) |
+
+**Price Convergence Example:**
+
+```
+Before Market Coupling:
+UK Price: £120/MWh (low wind, tight supply)
+France Price: €70/MWh (high nuclear output)
+
+Interconnector Capacity: 2,000 MW available
+Price Differential: £50/MWh (€57/MWh at £1=€1.15)
+
+Action: Maximize France → UK flow (2,000 MW)
+
+After Coupling:
+UK Price: £95/MWh (import reduces scarcity)
+France Price: €85/MWh (export absorbs surplus)
+Convergence achieved!
+
+Trader Profit: (€108 - €85) × 2,000 MW × 1 hour = €46,000
+```
+
+---
+
+### Power Market Data Fields (Settlement Prices)
+
+**Typical ICE European Power Settlement Data:**
+
+| Field | Example | Description |
+|-------|---------|-------------|
+| `instrument_id` | DE.PWR.BASE.M01 | Germany Power Baseload Month 1 |
+| `market` | German Power | Country/region |
+| `product_type` | Baseload / Peak | Load profile |
+| `delivery_start` | 2024-05-01 00:00 | Delivery begins |
+| `delivery_end` | 2024-05-31 23:59 | Delivery ends |
+| `settlement_price` | 95.50 | EUR/MWh |
+| `volume` | 12,450 | MWh traded |
+| `open_interest` | 245,678 | MWh open positions |
+| `price_type` | Day-Ahead / Futures | Market type |
+
+**Common Instrument Naming:**
+
+```
+DE.PWR.BASE.CAL24  = German Power Baseload Calendar Year 2024
+UK.PWR.PEAK.Q2-24  = UK Power Peak Quarter 2 2024
+FR.PWR.BASE.M05-24 = French Power Baseload May 2024
+NL.PWR.OFFPK.W22   = Dutch Power Off-Peak Week 22
+```
+
+---
+
+### Real-World Power Trading Example
+
+#### Scenario: German Utility Hedging Strategy
+
+**Company:** Regional German power supplier  
+**Annual Sales:** 2,000 GWh to residential/commercial customers  
+**Date:** January 2024  
+**Goal:** Hedge power purchases for 2024
+
+**Market Analysis:**
+
+```
+Current Prices (January 2024):
+Cal-24 Baseload: €95.50/MWh
+Q2-24 Baseload: €72.30/MWh (low demand)
+Q4-24 Baseload: €110.20/MWh (high demand)
+Peak Premium: +€18/MWh vs. baseload
+```
+
+**Hedging Strategy:**
+
+| Product | Volume (GWh) | Price (EUR/MWh) | Total Cost (€M) |
+|---------|--------------|-----------------|-----------------|
+| Cal-24 Baseload | 1,000 | 95.50 | 95.50 |
+| Q2-24 Baseload | 200 | 72.30 | 14.46 |
+| Q4-24 Peak | 400 | 128.20 | 51.28 |
+| Day-Ahead (buffer) | 400 | Variable | TBD |
+| **Total** | **2,000** | **Avg €94.37** | **€161.24M** |
+
+**Risk Management:**
+
+- **80% Hedged** - Price certainty for budgeting
+- **20% Spot Exposure** - Flexibility for optimization
+- **Quarterly Adjustments** - Update hedges as forecasts change
+
+**Outcome (Hypothetical):**
+
+```
+Actual Average Day-Ahead 2024: €102.50/MWh
+Hedged Cost: €94.37/MWh
+Savings: €8.13/MWh × 1,600 GWh = €13 million saved!
+```
+
+---
+
+### Advanced Power Market Concepts
+
+#### 1. Locational Marginal Pricing (LMP)
+
+**Concept:** Different prices at different locations due to transmission constraints.
+
+**Example - Grid Congestion:**
+
+```
+Scenario: North Germany has excess wind, South Germany has high demand
+
+North (Wind Farm Zone):
+Generation: 15 GW
+Demand: 8 GW
+Price: €30/MWh (surplus)
+
+South (Industrial Zone):
+Generation: 5 GW
+Demand: 12 GW
+Price: €80/MWh (deficit)
+
+Transmission Line Capacity: Only 5 GW
+Bottleneck: Cannot send all cheap northern power south
+
+Result: Price differential of €50/MWh
+Transmission Congestion Rent: €50 × 5 GW × 1h = €250,000/hour
+```
+
+#### 2. Ancillary Services Markets
+
+**Frequency Regulation:**
+
+```
+Grid Frequency: Must stay at 50.00 Hz ± 0.2 Hz
+Pay for services:
+- Primary Reserve: Activate in 30 seconds (€XX/MW/h)
+- Secondary Reserve: Activate in 5 minutes (€XX/MW/h)
+- Tertiary Reserve: Activate in 15 minutes (€XX/MW/h)
+```
+
+**Example Payment:**
+
+```
+Battery Storage Facility (50 MW):
+Primary Reserve Capacity Payment: €25/MW/hour
+Revenue: 50 MW × €25 × 8,760 hours = €10.95M/year
+
+Plus: Energy payments when activated
+Total Revenue: €15-20M/year (just for being available!)
+```
+
+#### 3. Balancing Markets
+
+**Purpose:** Real-time balancing of actual vs. scheduled generation/consumption.
+
+**How It Works:**
+
+```
+Hour 14:00 Scheduled:
+Generation: 60 GW
+Demand: 60 GW
+Balanced ✓
+
+Hour 14:15 Actual:
+Generation: 58 GW (wind dropped unexpectedly)
+Demand: 60 GW
+Imbalance: -2 GW (shortage)
+
+Grid Operator Action:
+Activate reserve generators (+2 GW)
+Balancing Price: €150/MWh (3x normal price!)
+
+Imbalance Penalties:
+Party responsible for shortage pays €150 × 2,000 MW × 0.25h = €75,000
+```
+
+---
+
+### Key European Power Market Regulations
+
+#### 1. Emissions Trading System (EU ETS)
+
+**Carbon Pricing Impact on Power:**
+
+```
+Coal Plant (40% efficiency):
+Carbon Emissions: 0.8 tCO2/MWh
+Carbon Price: €80/tCO2
+Carbon Cost: €64/MWh
+
+Gas Plant (60% efficiency):
+Carbon Emissions: 0.35 tCO2/MWh
+Carbon Price: €80/tCO2
+Carbon Cost: €28/MWh
+
+Result: Gas becomes more competitive vs. coal
+Merit order shifts: Gas displaces coal
+Power prices rise by carbon cost
+```
+
+#### 2. Renewable Energy Targets
+
+**EU Renewable Directive:**
+- 2030 Target: 42.5% renewable electricity
+- 2050 Goal: Climate neutrality (100% clean energy)
+
+**Impact on Markets:**
+- More price volatility (weather-dependent generation)
+- Increased negative price events
+- Need for flexibility (batteries, demand response)
+- Higher capacity market payments
+
+---
+
+### ICE Power Market Trading Hours
+
+| Market | Trading Hours (CET) | Auction Time |
+|--------|---------------------|--------------|
+| German Day-Ahead | 00:00 - 12:00 | 12:00 (results 12:30) |
+| UK Day-Ahead | 00:00 - 11:00 | 11:00 (results 11:30) |
+| French Day-Ahead | 00:00 - 12:00 | 12:00 |
+| Intraday (continuous) | 15:00 D-1 to 5 min before delivery | N/A (continuous) |
+| Futures | 08:00 - 18:00 | N/A (continuous) |
+
+---
+
+## 🌐 Other Major Power Markets (Quick Reference)
+
+### US Power Markets
+
+**Regional Transmission Organizations (RTOs):**
+
+| RTO/ISO | Region | Pricing | Key Features |
+|---------|--------|---------|--------------|
+| **PJM** | Mid-Atlantic, Midwest | LMP (Locational Marginal Pricing) | Largest RTO, 65 million people |
+| **ERCOT** | Texas | Nodal LMP | Isolated grid, extreme volatility |
+| **CAISO** | California | LMP | High renewable integration |
+| **NYISO** | New York | LMP | Urban constraints |
+| **ISO-NE** | New England | LMP | Winter peak challenges |
+
+**ERCOT Notable Event:**
+
+```
+Texas Winter Storm (February 2021):
+Normal Price: $50/MWh
+Crisis Price: $9,000/MWh (price cap!)
+Duration: 4 days
+Total Cost: $50 billion
+Cause: Gas supply freeze + power plant outages
+```
+
+### Asian Power Markets
+
+**Singapore:**
+- Uniform Singapore Energy Price (USEP)
+- Half-hourly pricing
+- Gas-fired generation dominant
+
+**Australia (NEM - National Electricity Market):**
+- 5-minute settlement
+- Highly volatile (renewable integration)
+- Price cap: AUD $15,500/MWh
+
+**Japan:**
+- JEPX (Japan Electric Power Exchange)
+- Day-ahead and intraday
+- Post-Fukushima nuclear phase-out
+
+---
+
+### Why Power Market Data Matters
+
+**For This ETL System:**
+
+1. **Portfolio Valuation** - Mark-to-market power derivatives
+2. **Risk Management** - VaR calculations on volatile power positions
+3. **Hedging Decisions** - When to lock in prices
+4. **Arbitrage** - Cross-border, calendar spreads
+5. **Regulatory Reporting** - Compliance with REMIT (EU market abuse)
+6. **Forecasting** - Predict forward curve movements
+
+**Data Quality Critical:**
+
+```
+Error Example:
+Incorrect Settlement: €95/MWh recorded as €9.50/MWh
+Position: 10,000 MWh
+Valuation Error: €855,000!
+
+Impact: Wrong P&L, wrong margin calls, compliance issues
+```
+
+---
 
 ---
 
@@ -704,6 +1308,7 @@ Simulate portfolio performance under extreme scenarios.
 
 ## 🎓 Glossary
 
+### General Trading Terms
 **Backwardation** - Near-term contracts more expensive than future contracts  
 **Basis** - Price difference between physical and futures  
 **Bcf** - Billion cubic feet (natural gas volume)  
@@ -720,18 +1325,63 @@ Simulate portfolio performance under extreme scenarios.
 **Tick** - Minimum price movement ($0.01 for crude)  
 **VaR** - Value at Risk (risk metric)
 
+### Power Market Specific Terms
+**Ancillary Services** - Grid support services (frequency regulation, reserves)  
+**Baseload** - Constant power delivery 24 hours/day  
+**Balancing Market** - Real-time market for grid balancing  
+**Capacity Market** - Payment for being available (not generating)  
+**Curtailment** - Paying generators to reduce output  
+**Day-Ahead Market** - Auction for next-day power delivery  
+**EPEX** - European Power Exchange (spot markets)  
+**EU ETS** - European Union Emissions Trading System (carbon pricing)  
+**Intraday Market** - Continuous trading for same-day delivery  
+**Interconnector** - High-voltage cable connecting country grids  
+**LMP** - Locational Marginal Pricing (different prices at different nodes)  
+**Market Coupling** - Integrated European power markets  
+**Merit Order** - Dispatch order from cheapest to most expensive generation  
+**MWh** - Megawatt-hour (1,000 kWh)  
+**Negative Prices** - Paying consumers to take excess power  
+**Off-Peak** - Nights, weekends (low demand periods)  
+**Peak Load** - High demand hours (typically 8 AM - 8 PM weekdays)  
+**PCR** - Price Coupling of Regions (EU market integration)  
+**REMIT** - Regulation on Energy Market Integrity and Transparency (EU)  
+**RTO/ISO** - Regional Transmission Organization / Independent System Operator  
+**System Marginal Price (SMP)** - Price of most expensive generator running  
+**Transmission Constraint** - Physical limit on power flow through lines  
+**TWh** - Terawatt-hour (1 billion kWh)
+
+### ICE-Specific Terms
+**ICE** - Intercontinental Exchange (major energy exchange)  
+**N2EX** - ICE's UK power exchange  
+**Nord Pool** - Nordic and Baltic power exchange (part of ICE group)
+
 ---
 
 ## 💡 Key Takeaways
 
 1. **Settlement prices are official** - Used for marking portfolios, margin calls, cash settlement
 2. **Forward curve shows time value** - Different delivery months have different prices
-3. **Storage drives contango** - Costs of holding commodities
-4. **Spreads reveal relationships** - Refining margins, location differences
+3. **Storage drives contango** - Costs of holding commodities (except power - cannot store!)
+4. **Spreads reveal relationships** - Refining margins, location differences, calendar patterns
 5. **Volume + Open Interest = Liquidity** - Essential for large trades
-6. **Weather drives gas/power** - Seasonal patterns
-7. **Geopolitics drives oil** - Supply disruptions
-8. **Data quality matters** - Bad data = bad decisions, huge financial impact
+6. **Weather drives gas/power** - Seasonal patterns, temperature extremes
+7. **Geopolitics drives oil** - Supply disruptions, OPEC decisions
+8. **Renewables drive power volatility** - Wind/solar variability creates price swings
+9. **Power cannot be stored** - Real-time balancing creates unique market dynamics
+10. **Data quality matters** - Bad data = bad decisions, huge financial impact
+
+### Power Market Specific Takeaways
+
+11. **Merit order determines prices** - Marginal cost of last generator sets market price
+12. **Renewable integration is complex** - Creates negative prices, curtailment, capacity markets
+13. **Location matters for power** - Transmission constraints create different prices at different nodes
+14. **Time matters for power** - Hour-by-hour pricing, peak vs. off-peak premiums
+15. **Cross-border flows optimize costs** - Interconnectors enable cheap power to flow to expensive regions
+16. **Carbon pricing affects dispatch** - EU ETS makes coal expensive, favors gas and renewables
+17. **Frequency must stay at 50 Hz** - Real-time balancing essential for grid stability
+18. **Capacity markets ensure reliability** - Pay plants to be available even when not running
+19. **Day-ahead, intraday, and balancing work together** - Progressive refinement toward real-time
+20. **ICE dominates European power trading** - Largest liquidity for hedging and speculation
 
 ---
 
